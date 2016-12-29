@@ -5,7 +5,8 @@
 
 // According to Python, its header has to go first:
 //   http://docs.python.org/2/c-api/intro.html#include-files
-#include <Python.h>
+#include <Python.h> // implies inclusion of the following standard headers: 
+                    // <stdio.h>, <string.h>, <errno.h>, <limits.h>, <assert.h> and <stdlib.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -19,6 +20,33 @@
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
+
+// The following three includes are related to stat()
+// They provide three functions:
+// stat(const char *path, struct stat *buf)
+//      loads a stat struct representing the file at `path` into `buf`
+// int fstat(int fd, struct stat *buf)
+//      same as stat, but stats a file descriptor instead of a path
+// int lstat(const char *path, struct stat *buf)
+//      same as stat, but if the stat target is a symbolic link,
+//      the link itself is stated not its target
+// struct stat {
+//     // most of these are essentially integer types
+//     dev_t     st_dev;     /* ID of device containing file */
+//     ino_t     st_ino;     /* inode number */
+//     mode_t    st_mode;    /* protection */
+//     nlink_t   st_nlink;   /* number of hard links */
+//     uid_t     st_uid;     /* user ID of owner */
+//     gid_t     st_gid;     /* group ID of owner */
+//     dev_t     st_rdev;    /* device ID (if special file) */
+//     off_t     st_size;    /* total size, in bytes */
+//     blksize_t st_blksize; /* blocksize for file system I/O */
+//     blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
+//     time_t    st_atime;   /* time of last access */
+//     time_t    st_mtime;   /* time of last modification */
+//     time_t    st_ctime;   /* time of last status change */
+// }
+
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -1319,7 +1347,11 @@ static PyObject *bup_lutimes(PyObject *self, PyObject *args)
 }
 #endif /* def HAVE_LUTIMES */
 
-
+// Explanations of these structs were hard to find
+// st_atime, etc. (w/ -'e') are unsigned long ints
+// st_atim, etc. (w/o -'e') are timespec structs
+// Look at https://linux.die.net/include/sys/stat.h
+// and more helpfully: https://linux.die.net/include/bits/stat.h for more info
 #ifdef HAVE_STAT_ST_ATIM
 # define BUP_STAT_ATIME_NS(st) (st)->st_atim.tv_nsec
 # define BUP_STAT_MTIME_NS(st) (st)->st_mtim.tv_nsec
@@ -1338,6 +1370,8 @@ static PyObject *bup_lutimes(PyObject *self, PyObject *args)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wtautological-compare" // For INTEGER_TO_PY().
 
+// STAT
+
 static PyObject *stat_struct_to_py(const struct stat *st,
                                    const char *filename,
                                    int fd)
@@ -1346,6 +1380,14 @@ static PyObject *stat_struct_to_py(const struct stat *st,
     // compile time, but not (easily) the unspecified types, so handle
     // those via INTEGER_TO_PY().  Assumes ns values will fit in a
     // long.
+
+    // Makes tuple
+    // `foo->bar` == `(*foo).bar` (get bar member from struct pointer foo)
+    // "O" == python object
+    // "K" == unsigned long long
+    // "L" == long long
+    // (`stuff`) = nested tuple with format string `stuff`
+    // "l" == long int
     return Py_BuildValue("OKOOOOOL(Ol)(Ol)(Ol)",
                          INTEGER_TO_PY(st->st_mode),
                          (unsigned PY_LONG_LONG) st->st_ino,
@@ -1365,6 +1407,9 @@ static PyObject *stat_struct_to_py(const struct stat *st,
 
 #pragma clang diagnostic pop  // ignored "-Wtautological-compare"
 
+// called as _helpers.stat(path) from python
+// takes a string path
+// returns a stat object
 static PyObject *bup_stat(PyObject *self, PyObject *args)
 {
     int rc;

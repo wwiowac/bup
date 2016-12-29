@@ -1,7 +1,8 @@
 import errno, metadata, os, stat, struct, tempfile
+# struct packs c-compatible values into or out of python strings or binary
 
 from bup import xstat
-from bup._helpers import UINT_MAX
+from bup._helpers import UINT_MAX # Maximum value for an object of type unsigned int
 from bup.helpers import (add_error, log, merge_iter, mmap_readwrite,
                          progress, qprogress, resolve_parent, slashappend)
 

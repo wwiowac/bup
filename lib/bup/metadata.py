@@ -10,6 +10,7 @@ from io import BytesIO
 import errno, os, sys, stat, time, pwd, grp, socket, struct
 
 from bup import vint, xstat
+# vint = bub specific binary encodings
 from bup.drecurse import recursive_dirlist
 from bup.helpers import add_error, mkdirp, log, is_superuser, format_filesize
 from bup.helpers import pwd_from_uid, pwd_from_name, grp_from_gid, grp_from_name
@@ -217,6 +218,7 @@ class Metadata:
     # must be non-negative and < 10**9.
 
     def _add_common(self, path, st):
+        """st = stat info (an xstat object)"""
         assert(st.st_uid >= 0)
         assert(st.st_gid >= 0)
         self.uid = st.st_uid

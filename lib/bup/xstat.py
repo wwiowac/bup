@@ -1,4 +1,7 @@
-"""Enhanced stat operations for bup."""
+"""Enhanced stat operations for bup.
+Extends python's builtin stat.
+Handles getting metadata information from files/directories."""
+
 import os
 import stat as pystat
 from bup import _helpers
@@ -91,6 +94,7 @@ def _fix_cygwin_id(id):
 class stat_result:
     @staticmethod
     def from_xstat_rep(st):
+        """Creates an object from a tuple of stat component values"""
         result = stat_result()
         (result.st_mode,
          result.st_ino,
@@ -112,6 +116,7 @@ class stat_result:
 
 
 def stat(path):
+    """Gets a stat_result object from the specified path."""
     return stat_result.from_xstat_rep(_helpers.stat(path))
 
 
